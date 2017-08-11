@@ -95,6 +95,15 @@ def get_about_me_message(keywords, hot_id):
 
         page += 1
 
+def update_about_me_message_hot_id():
+    sql = 'select t.id, t.keywords from TAB_IOPM_HOT_INFO t where t.hot_type != 0'
+    hots = oracledb.find(sql)
+    for hot in hots:
+        hot_id = hot[0]
+        keywords = hot[1]
+        print(hot)
+
+        get_about_me_message(keywords, hot_id)
 
 def get_about_me_hot():
     '''
@@ -219,4 +228,5 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    # main()
+    update_about_me_message_hot_id()

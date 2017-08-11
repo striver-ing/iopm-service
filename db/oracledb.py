@@ -125,13 +125,20 @@ if __name__ == '__main__':
     import threading
 
     db = OracleDB()
-    sql = 'select count(*) from v$process'
+    # sql = 'select count(*) from v$process'
 
-    result = threading.Thread(target = db.find, args = (sql,)).start()
-    print(result)
+    # result = threading.Thread(target = db.find, args = (sql,)).start()
+    # print(result)
 
-    result = threading.Thread(target = db.find, args = ('select * from tab_mvms_violation_knowledge',)).start()
-    print(result)
+    # result = threading.Thread(target = db.find, args = ('select * from tab_mvms_violation_knowledge',)).start()
+    # print(result)
 
-    result = threading.Thread(target = db.find, args = (sql,)).start()
-    print(result)
+    # result = threading.Thread(target = db.find, args = (sql,)).start()
+    # print(result)
+
+    hot_id = 1301372
+    sql = '''
+            select t.clues_ids from TAB_IOPM_ARTICLE_INFO t where id = 14484
+        '''
+    hot_info = db.find(sql)
+    print(hot_info)

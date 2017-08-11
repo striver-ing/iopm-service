@@ -234,8 +234,8 @@ class ExportData():
 
     # @tools.run_safe_model(__name__)
     def __export(self):
-        # if self._unique_key:
-        #     self._aim_db.set_unique_key(self._aim_table, self._unique_key)
+        if self._unique_key:
+            self._aim_db.set_unique_key(self._aim_table, self._unique_key)
 
         datas = self._mongodb.find(self._source_table, condition = self._condition) if self._mongodb else (self._datas if isinstance(self._datas, list) else [self._datas])
         for data in datas:

@@ -37,7 +37,7 @@ def delete_keys(keywords):
 
 def main():
     db = OracleDB()
-    sql = 'select t.id clues_id,to_char(t.keyword1),to_char(t.keyword2),to_char(t.keyword3),t.zero_id  from TAB_IOPM_CLUES t'# where zero_id != 5'
+    sql = 'select t.id clues_id,to_char(t.keyword1),to_char(t.keyword2),to_char(t.keyword3),t.zero_id  from TAB_IOPM_CLUES t where zero_id != 7' # 7 为传播途径
     results = db.find(sql)
 
     keys_count = 0
