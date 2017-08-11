@@ -14,7 +14,7 @@ Created on 2017-08-02 09:20
 DEBUG = False
 
 URLS = (
-    '/(.*)', 'service.help.Help'
+    '/(.*)', 'action.help.Help'
 )
 
 API_PORT = 8080
