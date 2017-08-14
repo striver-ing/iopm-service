@@ -14,6 +14,7 @@ Created on 2017-08-02 09:20
 DEBUG = False
 
 URLS = (
+    '/related_sort', 'action.related_sort_action.RelatedSortAction',
     '/(.*)', 'action.help.Help'
 )
 
