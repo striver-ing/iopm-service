@@ -27,18 +27,26 @@ class RelatedSortAction(object):
         print(str(web.input()))
         data = json.loads(json.dumps(web.input()))
 
-        hot_id = data.get('hot_id')
+        # 文章信息
         article_id = data.get('article_id')
+        clue_ids = data.get('clue_ids')
+        may_invalid = data.get('may_invalid') or 0
+
+        # 热点信息
+        hot_id = data.get('hot_id')
+        hot_value = data.get('hot_value') or 0
+        clues_id = data.get('clues_id') or ''
 
         status = 0 # 0 处理失败 1 处理成功
         weight = -1
 
+
         try:
             if hot_id:
-                status, weight = self._related_sort_service.deal_hot(int(hot_id))
+                status, weight = self._related_sort_service.deal_hot(int(hot_id), int(hot_value), clues_id)
 
             elif article_id:
-                status, weight = self._related_sort_service.deal_article(int(article_id))
+                status, weight = self._related_sort_service.deal_article(int(article_id), clue_ids, int(may_invalid))
 
         except Exception as e:
             log.error(e)

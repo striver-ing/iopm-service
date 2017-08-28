@@ -185,3 +185,18 @@
 
         else:
             return -1
+
+1.ES查询接口
+----------
+接口：/es
+
+    例子（查询全部）：
+    http://localhost:8080/es?table=tab_iopm_article_info&body={%22query%22:{%22match_all%22:{}}}
+
+参数（post 或 get方式）：
+
+    table:tab_iopm_article_info  
+    body:{...}
+
+
+返回值：json格式

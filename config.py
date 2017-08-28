@@ -15,6 +15,7 @@ DEBUG = False
 
 URLS = (
     '/related_sort', 'action.related_sort_action.RelatedSortAction',
+    '/es', 'action.elastic_search_action.ElasticSearchAction',
     '/(.*)', 'action.help.Help'
 )
 

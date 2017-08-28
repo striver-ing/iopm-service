@@ -335,6 +335,15 @@ def is_have_chinese(content):
     chinese_word = get_info(content, regex)
     return chinese_word and True or False
 
+def get_chinese_word(content):
+    regex = '[\u4e00-\u9fa5]+'
+    chinese_word = get_info(content, regex)
+    return chinese_word
+
+def get_english_words(content):
+    regex = '\w'
+    english_words = get_info(content, regex)
+    return english_words
 ##################################################
 def get_json(json_str):
     '''

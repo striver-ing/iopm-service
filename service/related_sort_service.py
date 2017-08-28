@@ -151,54 +151,95 @@ class RelatedSortService():
 
         return A
 
-    def get_hot_related_weight(self, hot_id):
+    def get_hot_article_clue_ids(self, hot_id):
         '''
-        @summary: 计算涉我热点权重
+        @summary: 取热点相关舆情所涉及的线索ids
         ---------
         @param hot_id:
         ---------
         @result:
         '''
 
-        sql = 'select t.hot, t.clues_id from TAB_IOPM_HOT_INFO t where t.id = %d'%hot_id
-        hot_info = self._oracledb.find(sql)
-        if hot_info:
-            hot_value = hot_info[0][0] / 100
-            clues_id = hot_info[0][1]   # 此处可能更改能按热点相关的文章所匹配到的线索id
+        sql = 'select t.clues_ids from TAB_IOPM_ARTICLE_INFO t where hot_id = %d'%hot_id
+        results = self._oracledb.find(sql)
+
+        clue_ids = set()
+        for result in results:
+            result_list = result[0].split(',')
+            for result in result_list:
+                clue_ids.add(result)
+
+        clue_ids = ','.join(clue_ids)
+        return clue_ids
+
+    def get_hot_related_weight(self, hot_id, hot_value = 0, clues_id = ''):
+        '''
+        @summary: 计算涉我热点权重
+        ---------
+        @param hot_id: 热度id
+        @param hot_value: 热度值 int
+        @param clues_id: 线索id 字符串 或 单个id
+        ---------
+        @result:
+        '''
+        if hot_value:
+            hot_value = hot_value / 100
+            clues_id = clues_id or self.get_hot_article_clue_ids(hot_id)
 
             F = hot_value * self.get_related_factor(RelatedSortService.HOT_FACTOR) + self.get_A(clues_id) * self.get_related_factor(RelatedSortService.CLUES_FACTOR)
 
             return F * 100
 
         else:
-            log.error('TAB_IOPM_HOT_INFO 无 hot_id = %d,  sql = %s'%(hot_id, sql))
-            return -1
 
-    def get_article_releated_weight(self, article_id):
+            sql = 'select t.hot, t.clues_id from TAB_IOPM_HOT_INFO t where t.id = %d'%hot_id
+            hot_info = self._oracledb.find(sql)
+            if hot_info:
+                hot_value = hot_info[0][0] / 100
+                # clues_id = hot_info[0][1]   # 此处可能更改能按热点相关的文章所匹配到的线索id
+                clues_id = self.get_hot_article_clue_ids(hot_id)
+
+                F = hot_value * self.get_related_factor(RelatedSortService.HOT_FACTOR) + self.get_A(clues_id) * self.get_related_factor(RelatedSortService.CLUES_FACTOR)
+
+                return F * 100
+
+            else:
+                log.error('TAB_IOPM_HOT_INFO 无 hot_id = %d,  sql = %s'%(hot_id, sql))
+                return -1
+
+    def get_article_releated_weight(self, article_id = None, clue_ids = '', may_invalid = None):
         '''
         @summary: 计算涉我舆情权重
         ---------
-        @param article_id:
+        @param article_id: 文章id
+        @param clue_ids: 线索ids 多个线索id逗号分隔 类型为字符串； 或单个线索id
+        @param may_invalid: 是否可能无效  整形
         ---------
         @result:
         '''
+
         article_weight = 0
 
-        sql = 'select t.clues_ids, t.may_invalid from TAB_IOPM_ARTICLE_INFO t where id = %d'%article_id
-        clues = self._oracledb.find(sql) #[('160',)] 或 []
-        if clues:
-            clue_ids = clues[0][0]
-            may_invalid = clues[0][1]
+        if clue_ids and may_invalid:
             article_weight = self.get_A(clue_ids)
-
             return article_weight if may_invalid else article_weight * 100 # 可能是@  # 等无效的数据，那么权重0~1
 
         else:
-            log.error('TAB_IOPM_ARTICLE_INFO 无 id = %d,  sql = %s'%(article_id, sql))
-            return -1
+            sql = 'select t.clues_ids, t.may_invalid from TAB_IOPM_ARTICLE_INFO t where id = %d'%article_id
+            clues = self._oracledb.find(sql) #[('160',)] 或 []
+            if clues:
+                clue_ids = clues[0][0]
+                may_invalid = clues[0][1]
+                article_weight = self.get_A(clue_ids)
 
-    def deal_hot(self, hot_id):
-        hot_weight = self.get_hot_related_weight(hot_id)
+                return article_weight if may_invalid else article_weight * 100 # 可能是@  # 等无效的数据，那么权重0~1
+
+            else:
+                log.error('TAB_IOPM_ARTICLE_INFO 无 id = %d,  sql = %s'%(article_id, sql))
+                return -1
+
+    def deal_hot(self, hot_id, hot_value = 0, clues_id = ''):
+        hot_weight = self.get_hot_related_weight(hot_id, hot_value = hot_value, clues_id = clues_id)
 
         if hot_weight != -1:
             sql = 'update TAB_IOPM_HOT_INFO set weight = %s where id = %d'%(hot_weight, hot_id)
@@ -207,8 +248,8 @@ class RelatedSortService():
         else:
             return False, hot_weight
 
-    def deal_article(self, article_id):
-        article_weight = self.get_article_releated_weight(article_id)
+    def deal_article(self, article_id, clue_ids = '', may_invalid = None):
+        article_weight = self.get_article_releated_weight(article_id, clue_ids, may_invalid)
 
         if article_weight != -1:
             sql = 'update TAB_IOPM_ARTICLE_INFO set weight = %s where id = %d'%(article_weight, article_id)
@@ -219,8 +260,8 @@ class RelatedSortService():
 
 if __name__ == '__main__':
     related_sort = RelatedSortService()
-    a = related_sort.get_hot_related_weight(130215)
-    print(a)
+    # a = related_sort.get_hot_related_weight(1123726)
+    # print(a)
 
-    b = related_sort.get_article_releated_weight(503344)
+    b = related_sort.get_article_releated_weight(1123802)
     print(b)
