@@ -9,6 +9,7 @@ Created on 2017-08-02 09:24
 import web
 from service.related_sort_service import RelatedSortService
 from utils.log import log
+import utils.tools as tools
 import json
 
 # {
@@ -37,26 +38,29 @@ class RelatedSortAction(object):
         hot_value = data.get('hot_value') or 0
         clues_id = data.get('clues_id') or ''
 
+        # 是否更新数据库
+        is_update_db = data.get('is_update_db') or 0
+
         status = 0 # 0 处理失败 1 处理成功
         weight = -1
 
 
         try:
             if hot_id:
-                status, weight = self._related_sort_service.deal_hot(int(hot_id), int(hot_value), clues_id)
+                status, weight = self._related_sort_service.deal_hot(int(hot_id), int(hot_value), clues_id, int(is_update_db))
 
             elif article_id:
-                status, weight = self._related_sort_service.deal_article(int(article_id), clue_ids, int(may_invalid))
+                status, weight = self._related_sort_service.deal_article(int(article_id), clue_ids, int(may_invalid), int(is_update_db))
 
         except Exception as e:
             log.error(e)
 
         result = {
-            'status' : 1 if status else 0,
-            'message' : '处理成功, 已更新数据库' if status else '处理失败',
-            'id':hot_id or article_id,
-            'weight':weight
+            "status" : 1 if status else 0,
+            "message" : "处理成功" if status else "处理失败",
+            "id":hot_id or article_id,
+            "weight":weight
         }
 
-        return result
+        return tools.dumps_json(result)
 

@@ -7,14 +7,21 @@
 
 参数：
 
-    hot_id:1    
+    hot_id:1
+    hot_value：80 #热度值    
+    -----或-----
     article_id:1 
+    clue_ids：12,13,14 #线索ids 
+    may_invalid：1 #是否可能无效
+    -----------
+    is_update_db:1  # 是否更新数据库  0 否 1 是； 默认 否
+    备注：传clue_ids、may_invalid、hot_value 等参数执行速度快
 
 返回值：
 
     {
         'status' : 1 或 0,
-        'message' : '处理成功, 已更新数据库' 或 '处理失败',
+        'message' : '处理成功'或 '处理失败',
         'id' : 热点id 或 文章id,
         'weight' : 权重
     }

@@ -17,8 +17,8 @@ class RelatedSortService():
     FIRST_CLASSIFY = 2
     SECOND_CLASSIFY = 3
 
-    HOT_FACTOR = 'hot_factor'
-    CLUES_FACTOR = 'clues_factor'
+    HOT_FACTOR = 401
+    CLUES_FACTOR = 402
 
     def __init__(self):
         self._oracledb = OracleDB()
@@ -83,11 +83,12 @@ class RelatedSortService():
         return self._classify[classify_rank][classify_id]
 
     def load_related_factor(self):
-        sql = 'select t.hot_factor, t.clues_factor from TAB_IOPM_RELATED_FACTOR t'
-        related_factor = self._oracledb.find(sql)
-        if related_factor:
-            self._relacted_factor[RelatedSortService.HOT_FACTOR] = related_factor[0][0]
-            self._relacted_factor[RelatedSortService.CLUES_FACTOR] = related_factor[0][1]
+        sql = 'select factor, t.value from TAB_IOPM_RELATED_FACTOR t'
+        related_factors = self._oracledb.find(sql)
+        print(related_factors)
+        if related_factors:
+            for related_factor in related_factors:
+                self._relacted_factor[related_factor[0]] = related_factor[1]
 
     def get_related_factor(self, factor_type):
         '''
@@ -172,7 +173,7 @@ class RelatedSortService():
         clue_ids = ','.join(clue_ids)
         return clue_ids
 
-    def get_hot_related_weight(self, hot_id, hot_value = 0, clues_id = ''):
+    def get_hot_related_weight(self, hot_id, hot_value = None, clues_id = ''):
         '''
         @summary: 计算涉我热点权重
         ---------
@@ -182,16 +183,16 @@ class RelatedSortService():
         ---------
         @result:
         '''
-        if hot_value:
+        if hot_value != None:
             hot_value = hot_value / 100
-            clues_id = clues_id or self.get_hot_article_clue_ids(hot_id)
+            # clues_id = clues_id or self.get_hot_article_clue_ids(hot_id)
+            clues_id = self.get_hot_article_clue_ids(hot_id)
 
             F = hot_value * self.get_related_factor(RelatedSortService.HOT_FACTOR) + self.get_A(clues_id) * self.get_related_factor(RelatedSortService.CLUES_FACTOR)
 
             return F * 100
 
         else:
-
             sql = 'select t.hot, t.clues_id from TAB_IOPM_HOT_INFO t where t.id = %d'%hot_id
             hot_info = self._oracledb.find(sql)
             if hot_info:
@@ -220,7 +221,7 @@ class RelatedSortService():
 
         article_weight = 0
 
-        if clue_ids and may_invalid:
+        if clue_ids:
             article_weight = self.get_A(clue_ids)
             return article_weight if may_invalid else article_weight * 100 # 可能是@  # 等无效的数据，那么权重0~1
 
@@ -238,22 +239,28 @@ class RelatedSortService():
                 log.error('TAB_IOPM_ARTICLE_INFO 无 id = %d,  sql = %s'%(article_id, sql))
                 return -1
 
-    def deal_hot(self, hot_id, hot_value = 0, clues_id = ''):
+    def deal_hot(self, hot_id, hot_value = 0, clues_id = '', is_update_db = False):
         hot_weight = self.get_hot_related_weight(hot_id, hot_value = hot_value, clues_id = clues_id)
 
         if hot_weight != -1:
-            sql = 'update TAB_IOPM_HOT_INFO set weight = %s where id = %d'%(hot_weight, hot_id)
-            return self._oracledb.update(sql), hot_weight
+            if is_update_db:
+                sql = 'update TAB_IOPM_HOT_INFO set weight = %s where id = %d'%(hot_weight, hot_id)
+                return self._oracledb.update(sql), hot_weight
+            else:
+                return True, hot_weight
 
         else:
             return False, hot_weight
 
-    def deal_article(self, article_id, clue_ids = '', may_invalid = None):
+    def deal_article(self, article_id, clue_ids = '', may_invalid = None, is_update_db = False):
         article_weight = self.get_article_releated_weight(article_id, clue_ids, may_invalid)
 
         if article_weight != -1:
-            sql = 'update TAB_IOPM_ARTICLE_INFO set weight = %s where id = %d'%(article_weight, article_id)
-            return self._oracledb.update(sql), article_weight
+            if is_update_db:
+                sql = 'update TAB_IOPM_ARTICLE_INFO set weight = %s where id = %d'%(article_weight, article_id)
+                return self._oracledb.update(sql), article_weight
+            else:
+                return True, article_weight
 
         else:
             return False, article_weight
@@ -263,5 +270,9 @@ if __name__ == '__main__':
     # a = related_sort.get_hot_related_weight(1123726)
     # print(a)
 
-    b = related_sort.get_article_releated_weight(1123802)
-    print(b)
+    # b = related_sort.get_article_releated_weight(1123802)
+    # print(b)
+
+    related_sort.load_related_factor()
+    print(related_sort.get_related_factor(RelatedSortService.CLUES_FACTOR))
+    print(related_sort.get_related_factor(RelatedSortService.HOT_FACTOR))
