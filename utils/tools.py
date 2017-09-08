@@ -41,7 +41,7 @@ def log_function_time(func):
             began_time = time.time()
             callfunc = func(*args, **kw)
             end_time = time.time()
-            log.debug(func.__name__ + " run time  = " + str(end_time - began_time))
+            # log.debug(func.__name__ + " run time  = " + str(end_time - began_time))
             return callfunc
         return calculate_time
     except:

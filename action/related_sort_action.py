@@ -22,6 +22,7 @@ import json
 class RelatedSortAction(object):
     def __init__(self):
         self._related_sort_service = RelatedSortService()
+        pass
 
     def GET(self):
         web.header('Content-Type','text/html;charset=UTF-8')
@@ -30,27 +31,28 @@ class RelatedSortAction(object):
 
         # 文章信息
         article_id = data.get('article_id')
-        clue_ids = data.get('clue_ids')
         may_invalid = data.get('may_invalid') or 0
 
         # 热点信息
         hot_id = data.get('hot_id')
         hot_value = data.get('hot_value') or 0
-        clues_id = data.get('clues_id') or ''
 
-        # 是否更新数据库
+        # 通用参数
+        clues_ids = data.get('clues_ids') or ''
+        article_count= data.get('article_count') or 0
+        vip_count= data.get('vip_count') or 0
+        negative_emotion_count = data.get('negative_emotion_count') or 0
         is_update_db = data.get('is_update_db') or 0
 
         status = 0 # 0 处理失败 1 处理成功
         weight = -1
 
-
         try:
             if hot_id:
-                status, weight = self._related_sort_service.deal_hot(int(hot_id), int(hot_value), clues_id, int(is_update_db))
+                status, weight = self._related_sort_service.deal_hot(int(hot_id), int(hot_value), clues_ids, int(is_update_db), int(article_count), int(vip_count), int(negative_emotion_count))
 
             elif article_id:
-                status, weight = self._related_sort_service.deal_article(int(article_id), clue_ids, int(may_invalid), int(is_update_db))
+                status, weight = self._related_sort_service.deal_article(int(article_id), clues_ids, int(may_invalid), int(is_update_db), int(vip_count), int(negative_emotion_count))
 
         except Exception as e:
             log.error(e)

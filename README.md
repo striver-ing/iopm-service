@@ -5,17 +5,24 @@
 
 接口：/related_sort
 
-参数：
+热点参数：
 
-    hot_id:1
-    hot_value：80 #热度值    
-    -----或-----
-    article_id:1 
-    clue_ids：12,13,14 #线索ids 
-    may_invalid：1 #是否可能无效
-    -----------
-    is_update_db:1  # 是否更新数据库  0 否 1 是； 默认 否
-    备注：传clue_ids、may_invalid、hot_value 等参数执行速度快
+    hot_id:1                   # 热点id
+    hot_value：80              # 热度值
+    clues_id：12,13,14         # 相关舆情匹配到的线索id
+    article_count              # 文章总数
+    vip_count：1               # 主流媒体数
+    negative_emotion_count ：  # 负面情感数
+    is_update_db:1             # 是否更新数据库  0 否 1 是； 默认 否
+    
+舆情参数：
+
+    article_id:1               # 线索id
+    clues_ids：12,13,14        # 线索ids 
+    may_invalid：1             # 是否可能无效
+    vip_count：1               # 主流媒体数
+    negative_emotion_count ：  # 负面情感数
+    is_update_db:1             # 是否更新数据库  0 否 1 是； 默认 否
 
 返回值：
 
@@ -28,24 +35,26 @@
 
 
 ### 算法描述 ###
->热度计算公式：F(相关性) = α * H + β * A
+>热度计算公式：F(相关性) = α * H + β * A + γ * V + δ * E
  
     注：
-	F：热度相关性
-    α：热度系数
-	β：线索系数
-	H：热度
-	A：线索综合权重
- 
-	α + β = 1
-	A = (c1j  + c2b + c3d + ..... )/ c1j  + c2b + c3d + ... + c4 + c5...
- 
-	c1j、c2b、c3d 为命中线索的权重
-	c4、c5 为 各自分类的平均权重
+        F: 热度相关性
+        α：热度系数
+        β：线索系数
+        γ：主流媒体系数
+        δ: 负面情感系数
+        H：热度
+        A：线索综合权重
+        V：主流媒体综合权重
+        E: 负面情感综合权重
+        α + β + γ + δ = 1
 
-	即：
-    分子为命中线索的权重总和
-	分母为命中线索的权重总和 加上 未命中的分类平均权重的总和
+        A = (c1j  + c2b + c3d + ..... )/ c1j  + c2b + c3d + c4...
+        c1j、c2b、c3d 为命中线索的权重
+        c4 为 c4分类的平均权重
+        即A的分子为命中线索的权重总和分母为命中线索的权重总和 加上 未命中的分类平均权重的总和
+        V = 相关报道主流媒体总数 / 相关报道总数
+        E = 相关报道负面情感总数 / 相关报道总数
 
 伪代码：
 
@@ -145,6 +154,39 @@
 
         return A
 
+>计算主流媒体综合权重
+
+    def get_V(self, article_count, vip_count):
+        '''
+        @summary: 主流媒体综合权重
+        ---------
+        @param article_count:文章总数
+        @param vip_count:主流媒体总数
+        ---------
+        @result:
+        '''
+        if article_count:
+            return (vip_count or 0) / article_count
+        else:
+            return 0
+
+>计算负面情感综合权重
+
+    def get_E(self, article_count, negative_emotion_count):
+        '''
+        @summary: 负面情感综合权重
+        ---------
+        @param article_count:文章总数
+        @param negative_emotion_count:负面情感的文章总数
+        ---------
+        @result:
+        '''
+        if article_count:
+            return (negative_emotion_count or 0) / article_count
+        else:
+            return 0
+
+
 >计算涉我热点权重
 
     def get_hot_related_weight(self, hot_id):
@@ -161,7 +203,7 @@
             hot_value = 热度值 / 100
             clues_id = 线索id   # 此处可能更改成按热点相关的文章所匹配到的线索id
 
-            F = 热度值 * 热度系数 + 线索综合权重 * 线索系数
+            F = 热度值 * 热度系数 + 线索综合权重 * 线索系数 + 主流媒体系数 * 主流媒体综合权重 + 负面系数 * 负面综合权重
 
             return F * 100
 
@@ -185,7 +227,7 @@
             clue_ids = 线索ids
             may_invalid = 是否无效
             # 计算线索综合权重A
-            article_weight = self.get_A(clue_ids)
+            article_weight = self.get_A(clue_ids)  + 主流媒体系数 * 主流媒体综合权重 + 负面系数 * 负面综合权重
 
             return article_weight*100 如果该舆情有效，否则返回article_weight。
             # 这样保证了有效的结果在1到100之间，可能无效的结果在0到1之间
