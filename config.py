@@ -16,6 +16,8 @@ DEBUG = False
 URLS = (
     '/related_sort', 'action.related_sort_action.RelatedSortAction',
     '/es', 'action.elastic_search_action.ElasticSearchAction',
+    '/wechat/(.*)', 'action.send_msg_to_wechat_action.SendMsgToWechatAction',
+    '/format_keywords', 'action.format_keywords_action.FormatKeywordsAction',
     '/(.*)', 'action.help.Help'
 )
 

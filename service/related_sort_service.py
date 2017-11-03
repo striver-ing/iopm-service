@@ -109,23 +109,23 @@ class RelatedSortService():
     # F(相关性) = α * H + β * A + γ * V + δ * E
 
     # 注：
-    #     F: 热度相关性
-    #     α：热度系数
-    #     β：线索系数
-    #     γ：主流媒体系数
-    #     δ: 负面情感系数
-    #     H：热度
-    #     A：线索综合权重
-    #     V：主流媒体综合权重
-    #     E: 负面情感综合权重
-    #     α + β + γ + δ = 1
+        # F: 热度相关性
+        # α：热度系数
+        # β：线索系数
+        # γ：主流媒体系数
+        # δ: 负面情感系数
+        # H：热度
+        # A：线索综合权重
+        # V：主流媒体综合权重
+        # E: 负面情感综合权重
 
-    #     A = (c1j  + c2b + c3d + ..... )/ c1j  + c2b + c3d + c4...
-    #     c1j、c2b、c3d 为命中线索的权重
-    #     c4 为 c4分类的平均权重
-    #     即A的分子为命中线索的权重总和分母为命中线索的权重总和 加上 未命中的分类平均权重的总和
-    #     V = 相关报道主流媒体总数 / 相关报道总数
-    #     E = 相关报道负面情感总数 / 相关报道总数
+        # α + β + γ + δ = 1
+        # A = (c1j  + c2b + c3d + ..... )/ c1j  + c2b + c3d + c4...
+        # c1j、c2b、c3d 为命中线索的权重
+        # c4 为 c4分类的平均权重
+        # 即A的分子为命中线索的权重总和分母为命中线索的权重总和 加上 未命中的分类平均权重的总和
+        # V = 相关报道主流媒体总数 / 相关报道总数
+        # E = 相关报道负面情感总数 / 相关报道总数
 
     @tools.log_function_time
     def get_A(self, clue_ids):
@@ -136,6 +136,9 @@ class RelatedSortService():
         ---------
         @result:
         '''
+        if not clue_ids:
+            return 0
+
         classify_weight = 0
         clues_weight = 0
         clue_ids = clue_ids if isinstance(clue_ids, str) else str(clue_ids)
@@ -225,7 +228,7 @@ class RelatedSortService():
         '''
         if hot_value != None:
             hot_value = hot_value / 100
-            clues_id = clues_id or self.get_hot_article_clue_ids(hot_id)
+            clues_id = clues_id #or self.get_hot_article_clue_ids(hot_id)
             # clues_id = self.get_hot_article_clue_ids(hot_id)
 
             F = hot_value * self.get_related_factor(RelatedSortService.HOT_FACTOR) + self.get_A(clues_id) * self.get_related_factor(RelatedSortService.CLUES_FACTOR) + self.get_V(article_count, vip_count) * self.get_related_factor(RelatedSortService.VIP_FACTOR) + self.get_E(article_count, negative_emotion_count) * self.get_related_factor(RelatedSortService.NEGATIVE_EMOTION_FACTOR)

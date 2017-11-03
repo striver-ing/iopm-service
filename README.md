@@ -235,17 +235,91 @@
         else:
             return -1
 
-1.ES查询接口
+2.ES查询接口
 ----------
-接口：/es
+>接口：/es
 
     例子（查询全部）：
     http://localhost:8080/es?table=tab_iopm_article_info&body={%22query%22:{%22match_all%22:{}}}
 
-参数（post 或 get方式）：
+**参数说明**（post 或 get方式）：
 
     table:tab_iopm_article_info  
     body:{...}
 
 
 返回值：json格式
+
+3.微信推送接口
+--------
+>查询用户信息接口：/wechat/get_user_list
+
+返回:
+
+    {
+    "errcode": 0,
+    "errmsg": "ok",
+    "userlist": [
+        {
+            "userid": "zhangsan",
+            "name": "李四",
+            "department": [1, 2],
+            "order": [1, 2],
+            "position": "后台工程师",
+            "mobile": "15913215421",
+            "gender": "1",
+            "email": "zhangsan@gzdev.com",
+            "isleader": 0,
+            "avatar":           "http://wx.qlogo.cn/mmopen/ajNVdqHZLLA3WJ6DSZUfiakYe37PKnQhBIeOQBO4czqrnZDS79FH5Wm5m4X69TBicnHFlhiafvDwklOpZeXYQQ2icg/0",
+            "telephone": "020-123456",
+            "english_name": "jackzhang",
+            "status": 1,
+            "extattr": {"attrs":[{"name":"爱好","value":"旅游"},{"name":"卡号","value":"1234567234"}]}
+        }
+    ]
+}
+
+>推送消息接口：/wechat/send_msg
+>
+>POST方式
+
+**参数说明**
+
+    {
+        "title":"xxxx",
+        "time":"yyyy-mm-dd hh24-mi-dd",
+        "content":"xxxxx...", //截取100字节
+        "url":"http://www.xxxxx",
+        "users":"UserID1|UserID2" // 多个userid用“|”分开， 全部发送@all
+        //"users":"@all"  全部
+    }
+
+返回:
+
+    {
+       "errcode" : 0, # 0 表示成功
+       "errmsg" : "ok",
+       "invaliduser" : "UserID1", // 不区分大小写，返回的列表都统一转为小写
+       "invalidparty" : "PartyID1",
+       "invalidtag":"TagID1"
+    }
+
+
+4.格式化关键词接口
+--------
+
+>处理关键词乘积关系 如（a|b）(c) 处理成 a&b,a&c
+>处理中英文逗号 如 hello word 你好 处理成 hello word&你好
+>`&`代表与`,`代表或
+
+接口：/format_keywords
+
+参数：keywords
+
+请求方式： POST/GET
+
+    例子：
+    http://192.168.60.30:8080/format_keywords?keywords=hello word 你好
+    返回：
+    hellow word&你好
+
