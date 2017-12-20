@@ -297,11 +297,31 @@
 返回:
 
     {
-       "errcode" : 0, # 0 表示成功
+       "errcode" : 0, // 0 表示成功
        "errmsg" : "ok",
        "invaliduser" : "UserID1", // 不区分大小写，返回的列表都统一转为小写
        "invalidparty" : "PartyID1",
        "invalidtag":"TagID1"
+    }
+
+> 推送文件接口 /wechat/send_file
+> 
+> POST方式
+
+**参数说明**
+
+    {
+        "file_path":"文件的共享路径"
+        "users":"UserID1|UserID2" // 多个userid用“|”分开， 全部发送@all
+        //"users":"@all"  全部
+    }
+
+返回:
+
+    {
+       "errcode" : 0, // 0 表示成功
+       "errmsg" : "ok",
+       "invaliduser" : "UserID1", // 推送失败的用户
     }
 
 

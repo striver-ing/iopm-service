@@ -24,7 +24,14 @@ class RelatedSortAction(object):
         self._related_sort_service = RelatedSortService()
         pass
 
+
     def GET(self):
+        return self.deal_request()
+
+    def POST(self):
+        return self.deal_request()
+
+    def deal_request(self):
         web.header('Content-Type','text/html;charset=UTF-8')
         print(str(web.input()))
         data = json.loads(json.dumps(web.input()))
@@ -49,10 +56,10 @@ class RelatedSortAction(object):
 
         try:
             if hot_id:
-                status, weight = self._related_sort_service.deal_hot(int(hot_id), int(hot_value), clues_ids, int(is_update_db), int(article_count), int(vip_count), int(negative_emotion_count))
+                status, weight = self._related_sort_service.deal_hot(hot_id, int(hot_value), clues_ids, int(is_update_db), int(article_count), int(vip_count), int(negative_emotion_count))
 
             elif article_id:
-                status, weight = self._related_sort_service.deal_article(int(article_id), clues_ids, int(may_invalid), int(is_update_db), int(vip_count), int(negative_emotion_count))
+                status, weight = self._related_sort_service.deal_article(article_id, clues_ids, int(may_invalid), int(is_update_db), int(vip_count), int(negative_emotion_count))
 
         except Exception as e:
             log.error(e)

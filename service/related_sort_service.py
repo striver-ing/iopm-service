@@ -295,27 +295,19 @@ class RelatedSortService():
 
     def deal_hot(self, hot_id, hot_value = 0, clues_id = '', is_update_db = False, article_count = None, vip_count = None, negative_emotion_count = None):
         hot_weight = self.get_hot_related_weight(hot_id, hot_value = hot_value, clues_id = clues_id, article_count = article_count, vip_count = vip_count, negative_emotion_count = negative_emotion_count)
+        self._oracledb.close()
 
         if hot_weight != -1:
-            if is_update_db:
-                sql = 'update TAB_IOPM_HOT_INFO set weight = %s where id = %d'%(hot_weight, hot_id)
-                return self._oracledb.update(sql), hot_weight
-            else:
-                return True, hot_weight
-
+            return True, hot_weight
         else:
             return False, hot_weight
 
     def deal_article(self, article_id, clue_ids = '', may_invalid = None, is_update_db = False, vip_count = None, negative_emotion_count = None, article_count = 1):
         article_weight = self.get_article_releated_weight(article_id, clue_ids, may_invalid, vip_count, negative_emotion_count)
+        self._oracledb.close()
 
         if article_weight != -1:
-            if is_update_db:
-                sql = 'update TAB_IOPM_ARTICLE_INFO set weight = %s where id = %d'%(article_weight, article_id)
-                return self._oracledb.update(sql), article_weight
-            else:
-                return True, article_weight
-
+            return True, article_weight
         else:
             return False, article_weight
 

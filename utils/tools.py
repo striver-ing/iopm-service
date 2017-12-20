@@ -181,6 +181,26 @@ def get_json_by_requests(url, params = None, headers = '', data = None, proxies 
 
     return json
 
+def upload_file(url, file_path, file_type):
+    '''
+    @summary: 上传文件(目前用于企业微信)
+    ---------
+    @param file_path: 文件路径
+    @param file_type: 媒体文件类型，分别有图片（image）、语音（voice）、视频（video），普通文件（file）
+    ---------
+    @result:
+    '''
+    response = {}
+    try:
+        files={file_type: open(file_path, 'rb')}
+        response = requests.post(url, files=files)
+        response = response.json()
+
+    except Exception as e:
+        log.error(e)
+
+    return response
+
 def get_urls(html, stop_urls = []):
     urls = re.compile('<a.*?href="(.*?)"').findall(str(html))
     urls = sorted(set(urls), key = urls.index)
@@ -470,6 +490,17 @@ def capture(url, save_fn="capture.png"):
 
     browser.save_screenshot(save_fn)
     browser.close()
+
+def is_exists(file_path):
+    '''
+    @summary: 判断文件是否存在
+    ---------
+    @param file_path:文件路径 D:/workspace/test.txt
+    ---------
+    @result:
+    '''
+
+    return os.path.exists(file_path)
 
 def mkdir(path):
     try:
