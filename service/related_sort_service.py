@@ -11,8 +11,9 @@ sys.path.append('../')
 import utils.tools as tools
 from utils.log import log
 from db.oracledb import OracleDB
+import threading
 
-class RelatedSortService():
+class RelatedSortService(threading.Thread):
     ZERO_CLASSIFY = 1
     FIRST_CLASSIFY = 2
     SECOND_CLASSIFY = 3
@@ -22,8 +23,10 @@ class RelatedSortService():
     NEGATIVE_EMOTION_FACTOR = 403
     VIP_FACTOR = 404
 
+    _db = OracleDB()
+
     def __init__(self):
-        self._oracledb = OracleDB()
+        super(RelatedSortService, self).__init__()
         self._clues = {}
         self._classify = {
             RelatedSortService.ZERO_CLASSIFY:{},
@@ -37,9 +40,15 @@ class RelatedSortService():
             RelatedSortService.VIP_FACTOR : 0
         }
 
-        self.load_clues_weight()
-        self.load_classify_weight()
-        self.load_related_factor()
+    def run(self):
+        while True:
+            print('更新线索权重...')
+            self.load_clues_weight()
+            self.load_classify_weight()
+            self.load_related_factor()
+
+            print('更新线索权重完毕')
+            tools.delay_time(60 * 60)  # 一小时后更细权重
 
     def load_clues_weight(self):
         '''
@@ -50,7 +59,7 @@ class RelatedSortService():
         '''
 
         sql = 'select t.id, t.weight from TAB_IOPM_CLUES t'
-        clues = self._oracledb.find(sql)
+        clues = RelatedSortService._db.find(sql)
         for clue in clues:
             clue_id = clue[0]
             clue_weight = clue[1]
@@ -64,7 +73,6 @@ class RelatedSortService():
         ---------
         @result:
         '''
-
         return self._clues[clue_id]
 
     def load_classify_weight(self):
@@ -76,8 +84,8 @@ class RelatedSortService():
         '''
 
         # 0级
-        sql = 'select t.zero_id, avg(t.weight)from TAB_IOPM_CLUES t group by t.zero_id'
-        classifys = self._oracledb.find(sql)
+        sql = 'select t.zero_id, avg(t.weight)from TAB_IOPM_CLUES t where t.zero_id!=7 group by t.zero_id'
+        classifys = RelatedSortService._db.find(sql)
         for classify in classifys:
             classify_id = classify[0]
             classify_weight = classify[1]
@@ -88,7 +96,7 @@ class RelatedSortService():
 
     def load_related_factor(self):
         sql = 'select factor, t.value from TAB_IOPM_RELATED_FACTOR t'
-        related_factors = self._oracledb.find(sql)
+        related_factors = RelatedSortService._db.find(sql)
         # print(related_factors)
         if related_factors:
             for related_factor in related_factors:
@@ -128,11 +136,12 @@ class RelatedSortService():
         # E = 相关报道负面情感总数 / 相关报道总数
 
     @tools.log_function_time
-    def get_A(self, clue_ids):
+    def get_A(self, clue_ids, zero_ids):
         '''
         @summary: 计算线索综合权重
         ---------
-        @param clues_ids: 多个线索id逗号分隔 类型为字符串； 或单个线索id
+        @param clues_ids：匹配到的多个线索id逗号分隔 类型为字符串；
+        @param zero_ids: 匹配到的多个zero_id逗号分隔 类型为字符串
         ---------
         @result:
         '''
@@ -144,18 +153,11 @@ class RelatedSortService():
         clue_ids = clue_ids if isinstance(clue_ids, str) else str(clue_ids)
 
         # 取没有匹配到的分类
-        sql = '''
-            select distinct(zero_id) from TAB_IOPM_CLUES t where t.zero_id not in (
-                   select distinct(zero_id) from TAB_IOPM_CLUES t where t.id in ({clue_ids})
-            ) and t.zero_id != 7
-        '''.format(clue_ids = clue_ids)
+        contained_classify_ids = zero_ids.split(',') #匹配到的zero id [6,5,4,3,2,1] 或 []
+        uncontained_classify_ids = [classify_id for classify_id in self._classify[RelatedSortService.ZERO_CLASSIFY].keys() if str(classify_id) not in contained_classify_ids]
 
-        # print(sql)
-
-        classify_ids = self._oracledb.find(sql) # [(6,), (4,), (5,), (3,)] 或 []
-        if classify_ids:
-            for classify_id in classify_ids:
-                classify_weight += self.get_classify_weigth(classify_id[0])
+        for classify_id in uncontained_classify_ids:
+            classify_weight += self.get_classify_weigth(classify_id)
 
         for clue_id in clue_ids.split(','):
             clues_weight += self.get_clue_weight(int(clue_id))
@@ -194,29 +196,7 @@ class RelatedSortService():
             return 0
 
     @tools.log_function_time
-    def get_hot_article_clue_ids(self, hot_id):
-        '''
-        @summary: 取热点相关舆情所涉及的线索ids
-        ---------
-        @param hot_id:
-        ---------
-        @result:
-        '''
-
-        sql = 'select t.clues_ids from TAB_IOPM_ARTICLE_INFO t where hot_id = %d'%hot_id
-        results = self._oracledb.find(sql)
-
-        clue_ids = set()
-        for result in results:
-            result_list = result[0].split(',')
-            for result in result_list:
-                clue_ids.add(result)
-
-        clue_ids = ','.join(clue_ids)
-        return clue_ids
-
-    @tools.log_function_time
-    def get_hot_related_weight(self, hot_id, hot_value = None, clues_id = '', article_count = None, vip_count = None, negative_emotion_count = None):
+    def get_hot_related_weight(self, hot_id, hot_value = None, clues_id = '', zero_ids = '', article_count = None, vip_count = None, negative_emotion_count = None):
         '''
         @summary: 计算涉我热点权重
         ---------
@@ -226,39 +206,16 @@ class RelatedSortService():
         ---------
         @result:
         '''
-        if hot_value != None:
-            hot_value = hot_value / 100
-            clues_id = clues_id #or self.get_hot_article_clue_ids(hot_id)
-            # clues_id = self.get_hot_article_clue_ids(hot_id)
+        hot_value = hot_value / 100
+        F = hot_value * self.get_related_factor(RelatedSortService.HOT_FACTOR) + self.get_A(clues_id, zero_ids) * self.get_related_factor(RelatedSortService.CLUES_FACTOR) + self.get_V(article_count, vip_count) * self.get_related_factor(RelatedSortService.VIP_FACTOR) + self.get_E(article_count, negative_emotion_count) * self.get_related_factor(RelatedSortService.NEGATIVE_EMOTION_FACTOR)
 
-            F = hot_value * self.get_related_factor(RelatedSortService.HOT_FACTOR) + self.get_A(clues_id) * self.get_related_factor(RelatedSortService.CLUES_FACTOR) + self.get_V(article_count, vip_count) * self.get_related_factor(RelatedSortService.VIP_FACTOR) + self.get_E(article_count, negative_emotion_count) * self.get_related_factor(RelatedSortService.NEGATIVE_EMOTION_FACTOR)
+        #print(hot_value ,'*', self.get_related_factor(RelatedSortService.HOT_FACTOR), '+', self.get_A(clues_id), '*', self.get_related_factor(RelatedSortService.CLUES_FACTOR), '+', self.get_V(article_count, vip_count), '*', self.get_related_factor(RelatedSortService.VIP_FACTOR), '+', self.get_E(article_count, negative_emotion_count), '*', self.get_related_factor(RelatedSortService.NEGATIVE_EMOTION_FACTOR))
 
-            #print(hot_value ,'*', self.get_related_factor(RelatedSortService.HOT_FACTOR), '+', self.get_A(clues_id), '*', self.get_related_factor(RelatedSortService.CLUES_FACTOR), '+', self.get_V(article_count, vip_count), '*', self.get_related_factor(RelatedSortService.VIP_FACTOR), '+', self.get_E(article_count, negative_emotion_count), '*', self.get_related_factor(RelatedSortService.NEGATIVE_EMOTION_FACTOR))
+        return F * 100
 
-            return F * 100
-
-        else:
-            sql = 'select t.hot, t.clues_id, t.NEGATIVE_EMOTION_COUNT, t.is_vip, t.ARTICLE_COUNT from TAB_IOPM_HOT_INFO t where t.id = %d'%hot_id
-            hot_info = self._oracledb.find(sql)
-            if hot_info:
-                hot_value = hot_info[0][0] / 100
-                # clues_id = hot_info[0][1]   # 此处可能更改能按热点相关的文章所匹配到的线索id
-                negative_emotion_count = hot_info[0][2]
-                vip_count = hot_info[0][3]
-                article_count = hot_info[0][4]
-
-                clues_id = self.get_hot_article_clue_ids(hot_id)
-
-                F = hot_value * self.get_related_factor(RelatedSortService.HOT_FACTOR) + self.get_A(clues_id) * self.get_related_factor(RelatedSortService.CLUES_FACTOR) + self.get_V(article_count, vip_count) * self.get_related_factor(RelatedSortService.VIP_FACTOR) + self.get_E(article_count, negative_emotion_count) * self.get_related_factor(RelatedSortService.NEGATIVE_EMOTION_FACTOR)
-
-                return F * 100
-
-            else:
-                log.error('TAB_IOPM_HOT_INFO 无 hot_id = %d,  sql = %s'%(hot_id, sql))
-                return -1
 
     @tools.log_function_time
-    def get_article_releated_weight(self, article_id = None, clue_ids = '', may_invalid = None, vip_count = None, negative_emotion_count = None, article_count = 1):
+    def get_article_releated_weight(self, article_id = None, clue_ids = '', zero_ids = '', may_invalid = None, vip_count = None, negative_emotion_count = None, article_count = 1):
         '''
         @summary: 计算涉我舆情权重
         ---------
@@ -269,42 +226,19 @@ class RelatedSortService():
         @result:
         '''
 
-        article_weight = 0
+        article_weight = self.get_A(clue_ids, zero_ids) + self.get_V(article_count, vip_count) * self.get_related_factor(RelatedSortService.VIP_FACTOR) + self.get_E(article_count, negative_emotion_count) * self.get_related_factor(RelatedSortService.NEGATIVE_EMOTION_FACTOR)
+        return article_weight if may_invalid else article_weight * 100 # 可能是@  # 等无效的数据，那么权重0~1
 
-        if clue_ids:
-            article_weight = self.get_A(clue_ids) + self.get_V(article_count, vip_count) * self.get_related_factor(RelatedSortService.VIP_FACTOR) + self.get_E(article_count, negative_emotion_count) * self.get_related_factor(RelatedSortService.NEGATIVE_EMOTION_FACTOR)
-
-            return article_weight if may_invalid else article_weight * 100 # 可能是@  # 等无效的数据，那么权重0~1
-
-        else:
-            sql = 'select t.clues_ids, t.may_invalid, t.is_vip, t.emotion from TAB_IOPM_ARTICLE_INFO t where id = %d'%article_id
-            clues = self._oracledb.find(sql) #[('160',)] 或 []
-            if clues:
-                clue_ids = clues[0][0]
-                may_invalid = clues[0][1]
-                vip_count = clues[0][2] or 0
-                negative_emotion_count = (clues[0][3] == 2) and 1 or 0
-
-                article_weight = self.get_A(clue_ids) + self.get_V(article_count, vip_count) * self.get_related_factor(RelatedSortService.VIP_FACTOR) + self.get_E(article_count, negative_emotion_count) * self.get_related_factor(RelatedSortService.NEGATIVE_EMOTION_FACTOR)
-
-                return article_weight if may_invalid else article_weight * 100 # 可能是@  # 等无效的数据，那么权重0~1
-
-            else:
-                log.error('TAB_IOPM_ARTICLE_INFO 无 id = %d,  sql = %s'%(article_id, sql))
-                return -1
-
-    def deal_hot(self, hot_id, hot_value = 0, clues_id = '', is_update_db = False, article_count = None, vip_count = None, negative_emotion_count = None):
-        hot_weight = self.get_hot_related_weight(hot_id, hot_value = hot_value, clues_id = clues_id, article_count = article_count, vip_count = vip_count, negative_emotion_count = negative_emotion_count)
-        self._oracledb.close()
+    def deal_hot(self, hot_id, hot_value = 0, clues_id = '',zero_ids='', article_count = None, vip_count = None, negative_emotion_count = None):
+        hot_weight = self.get_hot_related_weight(hot_id, hot_value = hot_value, clues_id = clues_id, zero_ids = zero_ids, article_count = article_count, vip_count = vip_count, negative_emotion_count = negative_emotion_count)
 
         if hot_weight != -1:
             return True, hot_weight
         else:
             return False, hot_weight
 
-    def deal_article(self, article_id, clue_ids = '', may_invalid = None, is_update_db = False, vip_count = None, negative_emotion_count = None, article_count = 1):
-        article_weight = self.get_article_releated_weight(article_id, clue_ids, may_invalid, vip_count, negative_emotion_count)
-        self._oracledb.close()
+    def deal_article(self, article_id, clue_ids = '',zero_ids='', may_invalid = None, vip_count = None, negative_emotion_count = None, article_count = 1):
+        article_weight = self.get_article_releated_weight(article_id, clue_ids, zero_ids, may_invalid, vip_count, negative_emotion_count)
 
         if article_weight != -1:
             return True, article_weight
@@ -313,14 +247,16 @@ class RelatedSortService():
 
 if __name__ == '__main__':
     related_sort = RelatedSortService()
-    a = related_sort.deal_hot(2690862, hot_value = 23, clues_id = '278', is_update_db = False, article_count = 3, vip_count = 3, negative_emotion_count = 0)
+    related_sort.start()
+    tools.delay_time(5)
+    a = related_sort.deal_hot('2690862', hot_value = 23, clues_id = '735', zero_ids = '1,2', article_count = 3, vip_count = 3, negative_emotion_count = 0)
     print(a)
 
 
-    # b = related_sort.get_article_releated_weight(1123802)
-    # print(b)
+    # # b = related_sort.get_article_releated_weight(1123802)
+    # # print(b)
 
-    # related_sort.load_related_factor()
-    # print(related_sort.get_related_factor(RelatedSortService.CLUES_FACTOR))
-    # print(related_sort.get_related_factor(RelatedSortService.HOT_FACTOR))
-    print(0.23 * 0.3 + 0.25 * 0.7 + 0.2* 1 +  0.5 *0)
+    # # related_sort.load_related_factor()
+    # # print(related_sort.get_related_factor(RelatedSortService.CLUES_FACTOR))
+    # # print(related_sort.get_related_factor(RelatedSortService.HOT_FACTOR))
+    # print(0.23 * 0.3 + 0.25 * 0.7 + 0.2* 1 +  0.5 *0)

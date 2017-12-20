@@ -20,10 +20,11 @@ import json
 # }
 
 class RelatedSortAction(object):
-    def __init__(self):
-        self._related_sort_service = RelatedSortService()
-        pass
+    _related_sort_service = RelatedSortService()
+    _related_sort_service.start()
 
+    def __init__(self):
+        pass
 
     def GET(self):
         return self.deal_request()
@@ -49,17 +50,17 @@ class RelatedSortAction(object):
         article_count= data.get('article_count') or 0
         vip_count= data.get('vip_count') or 0
         negative_emotion_count = data.get('negative_emotion_count') or 0
-        is_update_db = data.get('is_update_db') or 0
+        zero_ids = data.get('zero_ids') or ''
 
         status = 0 # 0 处理失败 1 处理成功
         weight = -1
 
         try:
             if hot_id:
-                status, weight = self._related_sort_service.deal_hot(hot_id, int(hot_value), clues_ids, int(is_update_db), int(article_count), int(vip_count), int(negative_emotion_count))
+                status, weight = RelatedSortAction._related_sort_service.deal_hot(hot_id, int(hot_value), clues_ids, zero_ids, int(article_count), int(vip_count), int(negative_emotion_count))
 
             elif article_id:
-                status, weight = self._related_sort_service.deal_article(article_id, clues_ids, int(may_invalid), int(is_update_db), int(vip_count), int(negative_emotion_count))
+                status, weight = RelatedSortAction._related_sort_service.deal_article(article_id, clues_ids, zero_ids, int(may_invalid), int(vip_count), int(negative_emotion_count))
 
         except Exception as e:
             log.error(e)

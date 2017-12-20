@@ -13,16 +13,16 @@
     article_count              # 文章总数
     vip_count：1               # 主流媒体数
     negative_emotion_count ：  # 负面情感数
-    is_update_db:1             # 是否更新数据库  0 否 1 是； 默认 否
-    
+    zero_ids:1,2,3             # 匹配到的一级类别
+
 舆情参数：
 
     article_id:1               # 线索id
-    clues_ids：12,13,14        # 线索ids 
+    clues_ids：12,13,14        # 线索ids
     may_invalid：1             # 是否可能无效
     vip_count：1               # 主流媒体数
     negative_emotion_count ：  # 负面情感数
-    is_update_db:1             # 是否更新数据库  0 否 1 是； 默认 否
+    zero_ids:1,2,3             # 匹配到的一级类别
 
 返回值：
 
@@ -36,7 +36,7 @@
 
 ### 算法描述 ###
 >热度计算公式：F(相关性) = α * H + β * A + γ * V + δ * E
- 
+
     注：
         F: 热度相关性
         α：热度系数
@@ -111,7 +111,7 @@
         '''
         # 查询数据库
         # 将结果保存在字典中
-        
+
     def get_related_factor(self, factor_type):
         '''
         @summary: 取相关系数
@@ -145,7 +145,7 @@
 
         #执行sql
         # 计算各个分类平均权重的总和classify_weight 如c4+c5
-    
+
         # 将clue_ids 按逗号拆开，遍历计算线索权重总和clues_weight 如c1j  + c2b + c3d
         for clue_id in clue_ids.split(','):
             clues_weight += self.get_clue_weight(int(clue_id))
@@ -244,7 +244,7 @@
 
 **参数说明**（post 或 get方式）：
 
-    table:tab_iopm_article_info  
+    table:tab_iopm_article_info
     body:{...}
 
 
@@ -305,7 +305,7 @@
     }
 
 > 推送文件接口 /wechat/send_file
-> 
+>
 > POST方式
 
 **参数说明**
