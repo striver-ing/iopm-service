@@ -12,6 +12,8 @@ import web
 from service import *
 import config
 import sys
+import pid
+pid.record_pid(__file__)
 
 def start_server():
     web.config.debug = config.DEBUG
