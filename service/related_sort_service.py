@@ -162,7 +162,7 @@ class RelatedSortService(threading.Thread):
         for clue_id in clue_ids.split(','):
             clues_weight += self.get_clue_weight(int(clue_id))
 
-        A = clues_weight / (clues_weight + classify_weight)
+        A = clues_weight / (clues_weight + classify_weight) if clues_weight + classify_weight > 0 else 0
 
         return A
 
