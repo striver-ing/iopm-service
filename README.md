@@ -3,7 +3,7 @@
 1.热点及舆情相关性排序
 ----------
 
-接口：/related_sort
+### 1.1 接口：/related_sort ###
 
 热点参数：
 
@@ -34,7 +34,7 @@
     }
 
 
-### 算法描述 ###
+### 1.2算法描述 ###
 >热度计算公式：F(相关性) = α * H + β * A + γ * V + δ * E
 
     注：
@@ -237,7 +237,7 @@
 
 2.ES查询接口
 ----------
->接口：/es
+### 2.1接口：/es ###
 
     例子（查询全部）：
     http://localhost:8080/es?table=tab_iopm_article_info&body={%22query%22:{%22match_all%22:{}}}
@@ -252,7 +252,7 @@
 
 3.微信推送接口
 --------
->查询用户信息接口：/wechat/get_user_list
+### 3.1查询用户信息接口：/wechat/get_user_list ###
 
 返回:
 
@@ -279,9 +279,7 @@
     ]
 }
 
->推送消息接口：/wechat/send_msg
->
->POST方式
+### 3.2推送消息接口：/wechat/send_msg ###
 
 **参数说明**
 
@@ -304,9 +302,8 @@
        "invalidtag":"TagID1"
     }
 
-> 推送文件接口 /wechat/send_file
->
-> POST方式
+### 3.3 推送文件接口 /wechat/send_file ###
+
 
 **参数说明**
 
@@ -324,15 +321,131 @@
        "invaliduser" : "UserID1", // 推送失败的用户
     }
 
+### 3.4 添加用户接口 ###
 
-4.格式化关键词接口
+**请求方式**:POST(**HTTP**)
+
+**请求地址**：http：//ip地址:8080/wechat/add_user
+
+**请求包体：**
+
+    {
+       "user_id": "Zhangsan",
+       "name": "张三",
+       "mobile": "15913215421",
+       "email": "zhangsan@gzdev.com",
+       "enable":1
+    }
+
+**参数说明：**
+
+| 参数 | 必须 | 说明 |
+|:----|:---- |:-----|
+|user_id|否|成员id 空时自动用uuid填充|
+|name|是|成员名称。长度为1~64个字符， 必填|
+|mobile|否|手机号码。企业内必须唯一，mobile/email二者不能同时为空|
+|meail|否|邮箱。长度不超过64个字节，且为有效的email格式。企业内必须唯一，mobile/email二者不能同时为空|
+|enable|否|启用/禁用成员。1表示启用成员，0表示禁用成员。默认为1|
+
+
+**返回结果：**
+
+    {
+       "errcode": 0,
+       "errmsg": "created",
+       'user_id': "Zhangsan"
+    }
+
+**参数说明：**
+
+| 参数 | 说明 |
+|:----|:-----|
+|errcode|返回码 （0 为成功， 非0 出错）|
+|errmsg|对返回码的文本描述内容|
+|user_id|成员id|
+
+
+### 3.5 更新用户接口 ###
+**请求方式**:POST(**HTTP**)
+
+**请求地址**：http：//ip地址:8080/wechat/update_user
+
+**请求包体：**
+
+    {
+       "user_id": "Zhangsan",
+       "name": "李四",
+       "mobile": "15913215421",
+       "email": "zhangsan@gzdev.com",
+       "enable":1
+    }
+
+**参数说明：**
+
+| 参数 | 必须 | 说明 |
+|:----|:---- |:-----|
+|user_id|是|成员id|
+|name|是|成员名称。长度为1~64个字符|
+|mobile|是|手机号码。企业内必须唯一，mobile/email二者不能同时为空|
+|meail|是|邮箱。长度不超过64个字节，且为有效的email格式。企业内必须唯一，mobile/email二者不能同时为空|
+|enable|是|启用/禁用成员。1表示启用成员，0表示禁用成员|
+
+
+**返回结果：**
+
+    {
+       "errcode": 0,
+       "errmsg": "updated",
+    }
+
+**参数说明：**
+
+| 参数 | 说明 |
+|:----|:-----|
+|errcode|返回码 （0 为成功， 非0 出错）|
+|errmsg|对返回码的文本描述内容|
+
+
+### 3.6 删除用户接口 ###
+**请求方式**:POST/GET(**HTTP**)
+
+**请求地址**：http：//ip地址:8080/wechat/del_user
+
+**请求包体：**
+
+    {
+       "user_id": "Zhangsan"
+    }
+
+**参数说明：**
+
+| 参数 | 必须 | 说明 |
+|:----|:---- |:-----|
+|user_id|是|成员id|
+
+
+**返回结果：**
+
+    {
+       "errcode": 0,
+       "errmsg": "deleted",
+    }
+
+**参数说明：**
+
+| 参数 | 说明 |
+|:----|:-----|
+|errcode|返回码 （0 为成功， 非0 出错）|
+|errmsg|对返回码的文本描述内容|
+
+### 4.格式化关键词接口 ###
 --------
 
 >处理关键词乘积关系 如（a|b）(c) 处理成 a&b,a&c
 >处理中英文逗号 如 hello word 你好 处理成 hello word&你好
 >`&`代表与`,`代表或
 
-接口：/format_keywords
+### 4.1接口：/format_keywords ###
 
 参数：keywords
 
