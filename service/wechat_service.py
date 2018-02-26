@@ -37,7 +37,6 @@ class WechatService():
         return result.get('access_token')
 
     def send_msg(self, users, title, time, content, article_url):
-        print(self._send_msg_access_token)
         url = 'https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token=%s'%self._send_msg_access_token
         data = {
            "touser" : users,
