@@ -18,9 +18,10 @@ from service.wechat_service import WechatService
 class WechatAction():
     def __init__(self):
         corpid = 'wwd1c26293d0353651'
-        secret = 'e4nN9A5MN9yM1JY77-2oTk1i3H_2SWAw1saZ2X0ItuQ'
+        send_msg_secret = 'e4nN9A5MN9yM1JY77-2oTk1i3H_2SWAw1saZ2X0ItuQ'
+        sync_user_sercet = '2hd69k-1VcKRvwT5sWc7zgjObylVy-bstSUGo9lhh1c'
         agentid = 1000002
-        self._wechat = WechatService(corpid, secret, agentid)
+        self._wechat = WechatService(corpid, send_msg_secret, sync_user_sercet, agentid)
 
     def deal_request(self, name):
         web.header('Content-Type','text/html;charset=UTF-8')
@@ -50,6 +51,27 @@ class WechatAction():
             else:
                 result = {"errcode":1,"errmsg":"上传文件错误","invaliduser":""}
 
+        elif name == 'add_user':
+            user_name = data.get('name')
+            mobile = data.get('mobile', '')
+            email = data.get('email', '')
+            user_id = data.get('user_id', '')
+            enable = data.get('enable', 1)
+
+            result = self._wechat.add_user(user_name, mobile, email, user_id, enable)
+
+        elif name == 'update_user':
+            user_name = data.get('name')
+            mobile = data.get('mobile', '')
+            email = data.get('email', '')
+            user_id = data.get('user_id', '')
+            enable = data.get('enable', 1)
+
+            result = self._wechat.update_user(user_id, user_name, mobile, email, enable)
+
+        elif name == 'del_user':
+            user_id = data.get('user_id')
+            result = self._wechat.del_user(user_id)
 
         # print(json.dumps(result))
 

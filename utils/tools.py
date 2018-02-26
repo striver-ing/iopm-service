@@ -774,6 +774,27 @@ def get_base64(secret, message):
     signature = base64.b64encode(hmac.new(secret, message, digestmod=hashlib.sha256).digest())
     return signature
 
+def get_uuid(key1 = '', key2 = ''):
+    '''
+    @summary: 计算uuid值
+    可用于将两个字符串组成唯一的值。如可将域名和新闻标题组成uuid，形成联合索引
+    ---------
+    @param key1:str
+    @param key2:str
+    ---------
+    @result:
+    '''
+
+    uuid_object = ''
+
+    if not key1 and not key2:
+        uuid_object = uuid.uuid1()
+    else:
+        hash = md5(bytes(key1, "utf-8") + bytes(key2, "utf-8")).digest()
+        uuid_object = uuid.UUID(bytes=hash[:16], version=3)
+
+    return str(uuid_object)
+
 ##################################################
 
 def cut_string(text, length):
