@@ -40,15 +40,22 @@ class RelatedSortService(threading.Thread):
             RelatedSortService.VIP_FACTOR : 0
         }
 
+        print('更新线索权重...')
+        self.load_clues_weight()
+        self.load_classify_weight()
+        self.load_related_factor()
+
+        print('更新线索权重完毕')
+
     def run(self):
         while True:
+            tools.delay_time(60 * 60)  # 一小时后更细权重
             print('更新线索权重...')
             self.load_clues_weight()
             self.load_classify_weight()
             self.load_related_factor()
 
             print('更新线索权重完毕')
-            tools.delay_time(60 * 60)  # 一小时后更细权重
 
     def load_clues_weight(self):
         '''
@@ -235,7 +242,7 @@ class RelatedSortService(threading.Thread):
         if hot_weight != -1:
             return True, hot_weight
         else:
-            return False, hot_weight
+            return False, hot_weight # 不知道为啥是-1了  有时间看看
 
     def deal_article(self, article_id, clue_ids = '',zero_ids='', may_invalid = None, vip_count = None, negative_emotion_count = None, article_count = 1):
         article_weight = self.get_article_releated_weight(article_id, clue_ids, zero_ids, may_invalid, vip_count, negative_emotion_count)
@@ -249,7 +256,7 @@ if __name__ == '__main__':
     related_sort = RelatedSortService()
     related_sort.start()
     tools.delay_time(5)
-    a = related_sort.deal_hot('2690862', hot_value = 23, clues_id = '735', zero_ids = '1,2', article_count = 3, vip_count = 3, negative_emotion_count = 0)
+    a = related_sort.deal_hot('25cd565c-4c0d-30a8-b853-21913e2dc6fa', hot_value = 43.5, clues_id = '274', zero_ids = '5', article_count = 29, vip_count = 0, negative_emotion_count = 0)
     print(a)
 
 

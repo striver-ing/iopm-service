@@ -57,7 +57,7 @@ class RelatedSortAction(object):
 
         try:
             if hot_id:
-                status, weight = RelatedSortAction._related_sort_service.deal_hot(hot_id, int(hot_value), clues_ids, zero_ids, int(article_count), int(vip_count), int(negative_emotion_count))
+                status, weight = RelatedSortAction._related_sort_service.deal_hot(hot_id, float(hot_value), clues_ids, zero_ids, int(article_count), int(vip_count), int(negative_emotion_count))
 
             elif article_id:
                 status, weight = RelatedSortAction._related_sort_service.deal_article(article_id, clues_ids, zero_ids, int(may_invalid), int(vip_count), int(negative_emotion_count))
