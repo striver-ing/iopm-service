@@ -8,6 +8,7 @@ Created on 2017-09-22 15:55
 '''
 import sys
 sys.path.append('..')
+import init
 
 from utils.log import log
 import utils.tools as tools
@@ -25,11 +26,20 @@ HEADER = {
     "Host": "qyapi.weixin.qq.com"
 }
 
+CITY = tools.get_conf_value('config.conf', 'position', 'city')
+
 class WechatService():
+    _depertment_id =  None
+
     def __init__(self, corpid, send_msg_secret, sync_user_sercet, agentid):
         self._agentid = agentid
         self._send_msg_access_token = self.get_access_token(corpid, send_msg_secret)
         self._sync_user_access_token = self.get_access_token(corpid, sync_user_sercet)
+
+        if not WechatService._depertment_id:
+            WechatService._depertment_id = self.get_depertment_id(CITY)
+            if not WechatService._depertment_id: # 通讯录中无此部门，新创建
+                WechatService._depertment_id = self.add_department(CITY)
 
     def get_access_token(self, corpid, secret):
         url = 'https://qyapi.weixin.qq.com/cgi-bin/gettoken?corpid=%s&corpsecret=%s'%(corpid, secret)
@@ -97,21 +107,29 @@ class WechatService():
         result = tools.get_json_by_requests(url = url, headers = HEADER, data = data )
         return result
 
-    def get_user(self, user_id):
-        url = 'https://qyapi.weixin.qq.com/cgi-bin/user/get?access_token=%s&userid=%s'%(self._send_msg_access_token, user_id)
-        result = tools.get_json_by_requests(url)
-        return result
+    def add_department(self, name):
+        url = 'https://qyapi.weixin.qq.com/cgi-bin/department/create?access_token=%s'%self._sync_user_access_token
+        data = {
+           "name": name,
+           "parentid": 1,
+        }
 
-    def get_user_list(self):
-        url = 'https://qyapi.weixin.qq.com/cgi-bin/user/list?access_token=%s&department_id=1&fetch_child=1'%(self._send_msg_access_token)
-        result = tools.get_json_by_requests(url)
-        # tools.print(result)
-        return result
+        data = tools.dumps_json(data).encode('utf-8')
+        result = tools.get_json_by_requests(url, headers = HEADER, data = data) # {'errcode': 0, 'id': 4, 'errmsg': 'created'}
+        return result.get("id")
 
-    def get_depertment(self):
+    def get_all_depertment(self):
         url = 'https://qyapi.weixin.qq.com/cgi-bin/department/list?access_token='+self._send_msg_access_token
         result = tools.get_json_by_requests(url)
-        tools.print(result)
+        return result
+
+    def get_depertment_id(self, name):
+        departments = self.get_all_depertment().get('department')
+        for department in departments:
+            if department.get('name') == name:
+                return department.get('id')
+
+        return None
 
     def get_tags(self):
         '''
@@ -171,9 +189,10 @@ class WechatService():
            "userid": user_id,
            "name": user_name,
            "mobile": mobile,
-           "department": [1],
+           "department": [WechatService._depertment_id],
            "email": email,
-           'enable':enable
+           'enable':enable,
+           'to_invite':False #是否邀请该成员使用企业微信（将通过微信服务通知或短信或邮件下发邀请，每天自动下发一次，最多持续3个工作日），默认值为true。
         }
 
         data = tools.dumps_json(data).encode('utf-8')
@@ -188,12 +207,22 @@ class WechatService():
 
         return return_json
 
+    def get_user(self, user_id):
+        url = 'https://qyapi.weixin.qq.com/cgi-bin/user/get?access_token=%s&userid=%s'%(self._send_msg_access_token, user_id)
+        result = tools.get_json_by_requests(url)
+        return result
+
+    def get_user_list(self):
+        url = 'https://qyapi.weixin.qq.com/cgi-bin/user/list?access_token=%s&department_id=%s&fetch_child=1'%(self._send_msg_access_token, WechatService._depertment_id)
+        result = tools.get_json_by_requests(url)
+        # tools.print(result)
+        return result
+
     def update_user(self, user_id, user_name = '', mobile = '', email = '', enable = 1):
         url = 'https://qyapi.weixin.qq.com/cgi-bin/user/update?access_token=' + self._sync_user_access_token
         data = {
            "userid": user_id,
            "name": user_name,
-           "department": [1],
            "mobile": mobile,
            "email": email,
            "enable": 1,
@@ -214,40 +243,6 @@ if __name__ == '__main__':
     sync_user_sercet = '2hd69k-1VcKRvwT5sWc7zgjObylVy-bstSUGo9lhh1c'
     agentid = 1000002
     wechat = WechatService(corpid, send_msg_secret, sync_user_sercet, agentid)
-    # print(wechat.get_depertment())
 
-    # result = wechat.add_user('宋云峰', '13628418425')
-    # print(result)
-
-    # result = wechat.update_user('65404ef6-1942-11e8-9231-ac2b6ec1dc60', '宋云峰3', '18510258241')
-    # print(result)
-
-    result = wechat.del_user('36e17fcc-1942-11e8-a88d-ac2b6ec1dc60')
+    result = wechat.add_user("王五", "15566264007" )
     print(result)
-    # wechat.get_user('ChenXinWei')
-    # print(wechat.get_user_list())
-
-    # title = '今天，为了这件大事，央视6位“名嘴”欢聚一堂！'
-    # time = '2017-09-19 23:31:37'
-    # content = '9月19日，2018年“CCTV国家品牌计划”发布会在京召开。本场发布会受到了社会各界的广泛关注...'
-    # url = 'http://mp.weixin.qq.com/s?__biz=MTI0MDU3NDYwMQ==&mid=2656610975&idx=1&sn=e22e85b24d1ccbf0e55bfd810af49d7a&scene=0#wechat_redirect'
-    # users = 'Liubo'
-    # wechat.send_msg(users, title, time, content, url)
-    # import requests
-    # access_token = 'Hb9in2l7dyjen_HayYQFk_WWut3VyGw2s7j1MjAKkC6ktsoGA4Zw_8odNBl6yAIvFVnLP_ka7q-g-P10t_liZIuKAsL_qkOzEH68pM3S16hOoY8XNyq05iBBSwDLPxV2Qm3BphIgrmvlxKmjhVCLkG0CRzA8CE9aj3HJO1p3gNJ1Pgaepjuy50e9XnCxKbwN9aDn6nJbRsdLXR4OsHWs8Q'
-    # file_type = 'file'
-    # url = 'https://qyapi.weixin.qq.com/cgi-bin/media/upload?access_token=%s&type=%s'%(access_token, file_type)
-
-    # result = requests.post(url, files=files)
-    # print(result.text)
-
-    # media_id = wechat.upload_file('1.txt')#, is_stream = False)
-    # print(media_id)
-    # result = wechat.send_file('Liubo', media_id)
-    # print(result)
-
-
-    # file = open('1.txt', 'rb')
-    # print(file.read())
-
-    # wechat.send_file('Liubo', '32bBsTPJ7M7XeQmHX4nmEo5y7RgYCLTHvnvtqQF7Emyo')
