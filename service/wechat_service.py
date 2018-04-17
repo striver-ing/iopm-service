@@ -26,7 +26,7 @@ HEADER = {
     "Host": "qyapi.weixin.qq.com"
 }
 
-CITY = tools.get_conf_value('config.conf', 'position', 'city')
+ORGANIZATION = tools.get_conf_value('config.conf', 'wechat', 'organization')
 
 class WechatService():
     _depertment_id =  None
@@ -37,9 +37,9 @@ class WechatService():
         self._sync_user_access_token = self.get_access_token(corpid, sync_user_sercet)
 
         if not WechatService._depertment_id:
-            WechatService._depertment_id = self.get_depertment_id(CITY)
+            WechatService._depertment_id = self.get_depertment_id(ORGANIZATION)
             if not WechatService._depertment_id: # 通讯录中无此部门，新创建
-                WechatService._depertment_id = self.add_department(CITY)
+                WechatService._depertment_id = self.add_department(ORGANIZATION)
 
     def get_access_token(self, corpid, secret):
         url = 'https://qyapi.weixin.qq.com/cgi-bin/gettoken?corpid=%s&corpsecret=%s'%(corpid, secret)
