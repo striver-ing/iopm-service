@@ -28,6 +28,7 @@ class RelatedSortService(threading.Thread):
     def __init__(self):
         super(RelatedSortService, self).__init__()
         self._clues = {}
+        self._clues_total_weight = 0
         self._classify = {
             RelatedSortService.ZERO_CLASSIFY:{},
             RelatedSortService.FIRST_CLASSIFY:{},
@@ -65,11 +66,12 @@ class RelatedSortService(threading.Thread):
         @result:
         '''
 
-        sql = 'select t.id, t.weight from TAB_IOPM_CLUES t'
+        sql = 'select t.id, t.weight from TAB_IOPM_CLUES t  where zero_id != 7'
         clues = RelatedSortService._db.find(sql)
         for clue in clues:
             clue_id = clue[0]
             clue_weight = clue[1]
+            self._clues_total_weight += clue_weight
             self._clues[clue_id] = clue_weight
 
     def get_clue_weight(self, clue_id):
@@ -136,6 +138,7 @@ class RelatedSortService(threading.Thread):
 
         # α + β + γ + δ = 1
         # A = (c1j  + c2b + c3d + ..... )/ c1j  + c2b + c3d + c4...
+        # 修改 A = (匹配到的线索权重 线索不去重) / 线索权重总和
         # c1j、c2b、c3d 为命中线索的权重
         # c4 为 c4分类的平均权重
         # 即A的分子为命中线索的权重总和分母为命中线索的权重总和 加上 未命中的分类平均权重的总和
@@ -159,19 +162,21 @@ class RelatedSortService(threading.Thread):
         clues_weight = 0
         clue_ids = clue_ids if isinstance(clue_ids, str) else str(clue_ids)
 
-        # 取没有匹配到的分类
-        contained_classify_ids = zero_ids.split(',') #匹配到的zero id [6,5,4,3,2,1] 或 []
-        uncontained_classify_ids = [classify_id for classify_id in self._classify[RelatedSortService.ZERO_CLASSIFY].keys() if str(classify_id) not in contained_classify_ids]
+        # # 取没有匹配到的分类
+        # contained_classify_ids = zero_ids.split(',') #匹配到的zero id [6,5,4,3,2,1] 或 []
+        # uncontained_classify_ids = [classify_id for classify_id in self._classify[RelatedSortService.ZERO_CLASSIFY].keys() if str(classify_id) not in contained_classify_ids]
 
-        for classify_id in uncontained_classify_ids:
-            classify_weight += self.get_classify_weigth(classify_id)
+        # for classify_id in uncontained_classify_ids:
+        #     classify_weight += self.get_classify_weigth(classify_id)
 
         for clue_id in clue_ids.split(','):
             clues_weight += self.get_clue_weight(int(clue_id))
 
-        A = clues_weight / (clues_weight + classify_weight) if clues_weight + classify_weight > 0 else 0
-
-        return A
+        # A = clues_weight / (clues_weight + classify_weight) if clues_weight + classify_weight > 0 else 0
+        A = clues_weight / self._clues_total_weight
+        print(clues_weight)
+        print(self._clues_total_weight)
+        return A * 10 # 太小了
 
 
     def get_V(self, article_count, vip_count):
@@ -253,11 +258,19 @@ class RelatedSortService(threading.Thread):
             return False, article_weight
 
 if __name__ == '__main__':
+    #     "hot_value": 52.0,
+    # "article_count": 8,
+    # "clues_ids": "250,925,924,389,274,924,250,273,250,430,279,916,916,925,925,274,274,250,275,102,274,916,927,953,930,927,930,930,250,928,928,109,273,928",
+    # "vip_count": 3,
+    # "zero_ids": "6,2,5,7",
+    # "negative_emotion_count": 8,
+    # "hot_id": "f443d613-bc0e-330b-9643-7798e0c5ca97"
     related_sort = RelatedSortService()
     related_sort.start()
-    tools.delay_time(5)
-    a = related_sort.deal_hot('25cd565c-4c0d-30a8-b853-21913e2dc6fa', hot_value = 43.5, clues_id = '274', zero_ids = '5', article_count = 29, vip_count = 0, negative_emotion_count = 0)
+    clue_ids = '250,925,924,389,274,924,250,273,250,430,279,916,916,925,925,274,274,250,275,102,274,916,927,953,930,927,930,930,250,928,928,109,273,928'
+    a = related_sort.deal_hot('25cd565c-4c0d-30a8-b853-21913e2dc6fa', hot_value = 52.0, clues_id = clue_ids, zero_ids = '6,2,5,7', article_count = 8, vip_count = 3, negative_emotion_count = 8)
     print(a)
+    tools.delay_time(5)
 
 
     # # b = related_sort.get_article_releated_weight(1123802)
