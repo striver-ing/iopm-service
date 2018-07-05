@@ -66,6 +66,8 @@ class RelatedSortService(threading.Thread):
         @result:
         '''
 
+        self._clues_total_weight = 0
+
         sql = 'select t.id, t.weight from TAB_IOPM_CLUES t  where zero_id != 7'
         clues = RelatedSortService._db.find(sql)
         for clue in clues:
@@ -173,7 +175,7 @@ class RelatedSortService(threading.Thread):
             clues_weight += self.get_clue_weight(int(clue_id))
 
         # A = clues_weight / (clues_weight + classify_weight) if clues_weight + classify_weight > 0 else 0
-        A = clues_weight / self._clues_total_weight
+        A = clues_weight / self._clues_total_weight if self._clues_total_weight else 0
         print(clues_weight)
         print(self._clues_total_weight)
         return A * 10 # 太小了
@@ -267,7 +269,7 @@ if __name__ == '__main__':
     # "hot_id": "f443d613-bc0e-330b-9643-7798e0c5ca97"
     related_sort = RelatedSortService()
     related_sort.start()
-    clue_ids = '250,925,924,389,274,924,250,273,250,430,279,916,916,925,925,274,274,250,275,102,274,916,927,953,930,927,930,930,250,928,928,109,273,928'
+    clue_ids = '936,936,274,936'
     a = related_sort.deal_hot('25cd565c-4c0d-30a8-b853-21913e2dc6fa', hot_value = 52.0, clues_id = clue_ids, zero_ids = '6,2,5,7', article_count = 8, vip_count = 3, negative_emotion_count = 8)
     print(a)
     tools.delay_time(5)
